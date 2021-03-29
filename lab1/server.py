@@ -1,23 +1,22 @@
 from socket import *
 import sys
 
-
 def server():
     serverSocket = socket(AF_INET, SOCK_STREAM)
     serverPort = 6789
     serverSocket.bind(('', serverPort))
-    serverSocket.listen(1)
+    serverSocket.listen(5)
     while True:
         print('Ready to serve ...')
         connectionSocket, addr = serverSocket.accept()
         try:
             message = connectionSocket.recv(1024).decode()
             if len(message) > 1:
-                fileName = message.split()[1]
+                filename = message.split()[1]
 
-                print(fileName)
+                print(filename)
 
-                f = open(fileName[1:])
+                f = open(filename[1:])
                 outputdata = f.read()
                 f.close()
 
