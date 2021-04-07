@@ -1,13 +1,10 @@
 import threading
 from socket import *
 
+class ClientThread(threading.Thread): #Thay ko chua cai multithread nen ko biet dung hay sai
 
-class ClientThread(threading.Thread):
-    connectionSocket = ''
-    addr = ''
-
-    def __init__(self, connect = '', address = ''):
-        threading.Thread.__init__(self)  # Call contructor of parent
+    def __init__(self, connect, address):
+        threading.Thread.__init__(self)
         self.connectionSocket = connect
         self.addr = address
 
@@ -40,15 +37,13 @@ class ClientThread(threading.Thread):
             finally:
                 break
 
-
 if __name__ == '__main__':
     serverSocket = socket(AF_INET, SOCK_STREAM)
-    serverPort = 6791
+    serverPort = 80
     serverSocket.bind(('', serverPort))
-    serverSocket.listen(5)
+    serverSocket.listen(1)
 
     threads = []
-    i = 1
     while True:
         print('Ready to serve ...')
         connectionSocket, addr = serverSocket.accept()
@@ -56,7 +51,5 @@ if __name__ == '__main__':
         clientThread = ClientThread(connectionSocket, addr)
         clientThread.setDaemon(True)  # The entire Python program exits when only daemon threads are left.
         clientThread.start()
-        print("#", i)
-        i += 1
-        clientThread.join()
         threads.append(clientThread)
+        clientThread.join()

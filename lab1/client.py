@@ -19,4 +19,4 @@ if __name__ == '__main__':
     except IOError:
         sys.exit()
     clientSocket.close()
-    # client.py 192.168.98.102 6789 index.html
+    # client.py 10.90.119.149 6789 index.html
