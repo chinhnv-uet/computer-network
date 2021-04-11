@@ -1,6 +1,5 @@
 import random as rd
 from socket import *
-import time
 
 #Create a UDP socket
 serverSocket = socket(AF_INET, SOCK_DGRAM)
