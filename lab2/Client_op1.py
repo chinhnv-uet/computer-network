@@ -12,7 +12,7 @@ countLoss = 0
 
 try:
     clientSocket.connect((serverName, serverPort))
-    for i in range(10):
+    for i in range(1, 11):
         start = time.time()
         message = "Ping #" + str(i)
         try:
@@ -27,12 +27,18 @@ try:
             sumRTT += RTT
 
             print("RTT: " + str(RTT), " from ", start, "to", end, "second\n")
+
+            print("Min RTT = %s, Max RTT = %s" % (minRTT, maxRTT))
+            print("Averange RTTs:", (sumRTT / (i - countLoss)))
+            print('_' * 30)
         except timeout:
             countLoss += 1
-            print("#" + str(i), "Requested time out\n")
+            print("#" + str(i), "Requested time out")
+            print('_' * 30, "\n")
 finally:
     clientSocket.close()
-print('_' * 30)
-print("\nMin RTT = %s, Max RTT = %s" % (minRTT, maxRTT))
-print("Packet loss rate", (countLoss/10))
-print("Averange RTTs:", (sumRTT / (10 - countLoss)))
+print("\nPacket loss rate", (countLoss / 10))
+# print('_' * 30)
+# print("\nMin RTT = %s, Max RTT = %s" % (minRTT, maxRTT))
+# print("Packet loss rate", (countLoss/10))
+# print("Averange RTTs:", (sumRTT / (10 - countLoss)))

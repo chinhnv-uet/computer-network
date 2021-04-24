@@ -16,7 +16,7 @@ try:
             respond = clientSocket.recv(1024)
             print("Received", respond.decode())
             end = time.time()
-            print("RTT: "+ str(end-start), " from ", start, "to", end, "second\n")
+            print("RTT:", str(end-start), "from", start, "to", end, "second\n")
         except timeout:
             print("#" + str(i), "Requested time out\n")
 finally:
