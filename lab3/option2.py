@@ -3,17 +3,17 @@ import ssl  # dung cho gmal.com de dam bao bao mat thong tin dang nhap
 import base64
 
 USERNAME = 'nchinh219@gmail.com'
-sender = USERNAME
 PASSWORD = 'superpassword123@'
 RECIPENT = 'nchinh2609@gmail.com'
 subjectEmail = "Test send email with image"
 msg = "\r\n I share my picture with you."
+sender = USERNAME
+endmsg = "\r\n.\r\n"
 
-# Load image
+# Load image to base64
 filename = "autumn-theme.jpg"
 with open(filename, "rb") as f:
     image_msg = base64.b64encode(f.read())
-endmsg = "\r\n.\r\n"
 
 mailserver = ("smtp.gmail.com", 587)  # use for gmail
 
@@ -95,7 +95,7 @@ print('recv4:', recv4)
 if recv4[:3] != '354':  # response to the DATA command.
     print('354 reply not received from server.')
 
-# Send subject and msg data for message
+# Send subject, msg and image
 message = 'MIME-Version: 1.0\r\n'
 message += 'from:' + sender + '\r\n'
 message += 'to:' + RECIPENT + '\r\n'
@@ -105,7 +105,7 @@ raw = 'Content-Type: multipart/related; boundary="000000000000b6a37005bcde5e56"\
       '--000000000000b6a37005bcde5e56\r\n' \
       'Content-Type: multipart/alternative; boundary="000000000000b6a36e05bcde5e55"\r\n\r\n' \
       '--000000000000b6a36e05bcde5e55\r\nContent-Type: text/plain; charset="UTF-8"\r\n\r\n' \
-      + msg + '\r\n\r\n--000000000000b6a36e05bcde5e55\r\n' \
+       + '\r\n\r\n--000000000000b6a36e05bcde5e55\r\n' \
               'Content-Type: text/html; charset="UTF-8"\r\n\r\n' \
       + msg + '<div dir="ltr"><img src="cid:ii_klxs09zr0" alt="' \
       + filename + '" width="749" height="468"><br></div>\r\n\r\n' \
