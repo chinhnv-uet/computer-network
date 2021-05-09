@@ -1,8 +1,3 @@
-# TODO: CODE MAU (https://github.com/avaiyang/ICMP-Pinger/blob/master/ICMP_Pinger.py)
-# https://github.com/NkonoAndrew/ICMP-Pinger/blob/master/ICMP-Pinger.py#L112
-# https://github.com/ChihyuHuang/icmp_pinger/blob/main/pinger.py    Fail
-# https://github.com/carlosgvaso/ICMPPinger Chay dc
-
 from socket import *
 import os
 import sys
@@ -11,6 +6,15 @@ import time
 import select
 
 ICMP_ECHO_REQUEST = 8
+ICMP_ECHO_REPLY_TYPE = 0
+ICMP_ECHO_REPLY_CODE = 0
+ICMP_ERROR_TYPE = 3
+ICMP_DEST_NET_UNREACHABLE_CODE = 0
+ICMP_DEST_HOST_UNREACHABLE_CODE = 1
+ICMP_DEST_PROTO_UNREACHABLE_CODE = 2
+ICMP_DEST_PORT_UNREACHABLE_CODE = 3
+ICMP_DEST_NET_UNKNOWN_CODE = 6
+ICMP_DEST_HOST_UNKNOWN_CODE = 7
 
 
 def checksum(string):
@@ -19,13 +23,13 @@ def checksum(string):
     count = 0
 
     while count < countTo:
-        thisVal = ord(string[count + 1]) * 256 + ord(string[count])
+        thisVal = (string[count + 1]) * 256 + (string[count])
         csum = csum + thisVal
         csum = csum & 0xffffffff
         count = count + 2
 
     if countTo < len(string):
-        csum = csum + ord(string[len(string) - 1])
+        csum = csum + (string[len(string) - 1])
         csum = csum & 0xffffffff
 
     csum = (csum >> 16) + (csum & 0xffff)
@@ -38,25 +42,72 @@ def checksum(string):
 
 def receiveOnePing(mySocket, ID, timeout, destAddr):
     timeLeft = timeout
-    while 1:
+    while True:
         startedSelect = time.time()
         whatReady = select.select([mySocket], [], [], timeLeft)
         howLongInSelect = (time.time() - startedSelect)
-        if whatReady[0] == []:  # Timeout
+        if not whatReady[0]:  # Timeout
             return "Request timed out."
 
         timeReceived = time.time()
         recPacket, addr = mySocket.recvfrom(1024)
 
-        #TODO: fill in start
+        # fill in start
+        ipHeader = recPacket[:20]
         icmpHeader = recPacket[20:28]
-        icmpType, code, mychecksum, packetID, sequence = struct.unpack("bbHHh", icmpHeader)
+        packetData = recPacket[28:]
 
-        if type != 8 and packetID == ID:
-            bytes = struct.calcsize("d")
-            timeSent = struct.unpack("d", recPacket[28:28 + bytes])[0]
-            return timeReceived - timeSent
-        #TODO: fill in end
+        ipVersion, ipTypeOfSvc, ipLength, ipID, ipFlags, ipTTL, ipProtocol, ipChecksum, ipSrcIP, ipDestIP = struct.unpack(
+            "!BBHHHBBHII", ipHeader)
+        icmpType, icmpCode, icmpChecksum, packetID, packetSequence = struct.unpack('bbHHh', icmpHeader)
+
+        if len(packetData) == 8:
+            timeSent = struct.unpack('d', packetData)[0]
+        else:
+            timeSent = None
+
+        expectedIcmpChecksum = 0
+        # Make a dummy header with a 0 checksum
+        # struct -- Interpret strings as packed binary data
+        header_checksum = struct.pack("bbHHh", icmpType, icmpCode, expectedIcmpChecksum, packetID, packetSequence)
+        if len(packetData) == 8:
+            data_checksum = struct.pack("d", timeSent)
+        else:
+            data_checksum = bytes()
+        # Calculate the checksum on the data and the dummy header.
+        expectedIcmpChecksum = checksum(header_checksum + data_checksum)
+
+        # Get the right checksum, and put in the header
+        if sys.platform == 'darwin':
+            # Convert 16-bit integers from host to network  byte order
+            expectedIcmpChecksum = htons(expectedIcmpChecksum) & 0xffff
+        else:
+            expectedIcmpChecksum = htons(expectedIcmpChecksum)
+
+        if addr[0] == destAddr and icmpType == ICMP_ECHO_REPLY_TYPE and icmpCode == ICMP_ECHO_REPLY_CODE and \
+                packetID == ID and packetSequence == 1 and icmpChecksum == expectedIcmpChecksum:
+            # Return the RTT in ms
+            rtt = (timeReceived - timeSent) * 1000.0
+            return '{0}: ICMP seq={1} TTL={2} RTT={3:.3f}ms'.format(addr[0], packetSequence, ipTTL, rtt), rtt
+        elif icmpType == ICMP_ERROR_TYPE and icmpCode == ICMP_DEST_NET_UNREACHABLE_CODE and \
+                icmpChecksum == expectedIcmpChecksum:
+            return 'Destination network unreachable.', 'na'
+        elif icmpType == ICMP_ERROR_TYPE and icmpCode == ICMP_DEST_HOST_UNREACHABLE_CODE and \
+                icmpChecksum == expectedIcmpChecksum:
+            return 'Destination host unreachable.', 'na'
+        elif icmpType == ICMP_ERROR_TYPE and icmpCode == ICMP_DEST_PROTO_UNREACHABLE_CODE and \
+                icmpChecksum == expectedIcmpChecksum:
+            return 'Destination protocol unreachable.', 'na'
+        elif icmpType == ICMP_ERROR_TYPE and icmpCode == ICMP_DEST_PORT_UNREACHABLE_CODE and \
+                icmpChecksum == expectedIcmpChecksum:
+            return 'Destination port unreachable.', 'na'
+        elif icmpType == ICMP_ERROR_TYPE and icmpCode == ICMP_DEST_NET_UNKNOWN_CODE and \
+                icmpChecksum == expectedIcmpChecksum:
+            return 'Destination network unknown.', 'na'
+        elif icmpType == ICMP_ERROR_TYPE and icmpCode == ICMP_DEST_HOST_UNKNOWN_CODE and \
+                icmpChecksum == expectedIcmpChecksum:
+            return 'Destination host unknown.', 'na'
+        # fill in end
 
         timeLeft = timeLeft - howLongInSelect
         if timeLeft <= 0:
@@ -72,7 +123,7 @@ def sendOnePing(mySocket, destAddr, ID):
     header = struct.pack("bbHHh", ICMP_ECHO_REQUEST, 0, myChecksum, ID, 1)
     data = struct.pack("d", time.time())
     # Calculate the checksum on the data and the dummy header.
-    myChecksum = checksum(str(header + data))
+    myChecksum = checksum(header + data)
 
     # Get the right checksum, and put in the header
     if sys.platform == 'darwin':
@@ -104,16 +155,15 @@ def doOnePing(destAddr, timeout):
 def ping(host, timeout=1):
     dest = gethostbyname(host)
 
-    print ("Pinging " + dest + " using Python:")
-    print ("")
+    print("Pinging " + dest + " using Python:")
+    print("")
 
     # Send ping requests to a server separated by approximately one second
     while 1:
-        delay = doOnePing(dest, timeout)
-        print(delay)
-        # delayList.append(delay[1])
+        print(doOnePing(dest, timeout))
+        print()
         time.sleep(1)  # one second
-    return delay
+
 
 print("Ping to google")
 ping("google.com")
