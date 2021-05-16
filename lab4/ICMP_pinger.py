@@ -9,13 +9,6 @@ ICMP_ECHO_REQUEST = 8
 ICMP_ECHO_REPLY_TYPE = 0
 ICMP_ECHO_REPLY_CODE = 0
 ICMP_ERROR_TYPE = 3
-ICMP_DEST_NET_UNREACHABLE_CODE = 0
-ICMP_DEST_HOST_UNREACHABLE_CODE = 1
-ICMP_DEST_PROTO_UNREACHABLE_CODE = 2
-ICMP_DEST_PORT_UNREACHABLE_CODE = 3
-ICMP_DEST_NET_UNKNOWN_CODE = 6
-ICMP_DEST_HOST_UNKNOWN_CODE = 7
-
 
 def checksum(string):
     csum = 0
@@ -89,24 +82,6 @@ def receiveOnePing(mySocket, ID, timeout, destAddr):
             # Return the RTT in ms
             rtt = (timeReceived - timeSent) * 1000.0
             return '{0}: ICMP seq={1} TTL={2} RTT={3:.3f}ms'.format(addr[0], packetSequence, ipTTL, rtt)
-        elif icmpType == ICMP_ERROR_TYPE and icmpCode == ICMP_DEST_NET_UNREACHABLE_CODE and \
-                icmpChecksum == expectedIcmpChecksum:
-            return 'Destination network unreachable.', 'na'
-        elif icmpType == ICMP_ERROR_TYPE and icmpCode == ICMP_DEST_HOST_UNREACHABLE_CODE and \
-                icmpChecksum == expectedIcmpChecksum:
-            return 'Destination host unreachable.', 'na'
-        elif icmpType == ICMP_ERROR_TYPE and icmpCode == ICMP_DEST_PROTO_UNREACHABLE_CODE and \
-                icmpChecksum == expectedIcmpChecksum:
-            return 'Destination protocol unreachable.', 'na'
-        elif icmpType == ICMP_ERROR_TYPE and icmpCode == ICMP_DEST_PORT_UNREACHABLE_CODE and \
-                icmpChecksum == expectedIcmpChecksum:
-            return 'Destination port unreachable.', 'na'
-        elif icmpType == ICMP_ERROR_TYPE and icmpCode == ICMP_DEST_NET_UNKNOWN_CODE and \
-                icmpChecksum == expectedIcmpChecksum:
-            return 'Destination network unknown.', 'na'
-        elif icmpType == ICMP_ERROR_TYPE and icmpCode == ICMP_DEST_HOST_UNKNOWN_CODE and \
-                icmpChecksum == expectedIcmpChecksum:
-            return 'Destination host unknown.', 'na'
         # fill in end
 
         timeLeft = timeLeft - howLongInSelect
@@ -140,9 +115,10 @@ def sendOnePing(mySocket, destAddr, ID):
 
 
 def doOnePing(destAddr, timeout):
-    icmp = getprotobyname("icmp")   #Get protocol number for icmp
+    icmp = getprotobyname("icmp")  # Get protocol number for icmp
     # Create Socket here
-    mySocket = socket(AF_INET, SOCK_RAW, icmp)  #SOCK_RAW is a type of socket that allows access to the underlying transport provider
+    mySocket = socket(AF_INET, SOCK_RAW,
+                      icmp)  # SOCK_RAW is a type of socket that allows access to the underlying transport provider
 
     myID = os.getpid() & 0xFFFF  # Return the current process i
     sendOnePing(mySocket, destAddr, myID)
@@ -153,13 +129,13 @@ def doOnePing(destAddr, timeout):
 
 
 def ping(host, timeout=1):
-    dest = gethostbyname(host)  #Lay dia chi ip cua host
+    dest = gethostbyname(host)  # Lay dia chi ip cua host
 
     print("Pinging " + dest + " using Python:")
     print("")
 
     # Send ping requests to a server separated by approximately one second
-    while True:    #Ping lien tuc moi 1 giay
+    while True:  # Ping lien tuc moi 1 giay
         print(doOnePing(dest, timeout))
         print()
         time.sleep(1)  # one second
